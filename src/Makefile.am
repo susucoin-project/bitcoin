@@ -83,8 +83,11 @@ if BUILD_BITCOIND
   bin_PROGRAMS += susucoind
 endif
 
-if BUILD_BITCOIN_UTILS
-  bin_PROGRAMS += susucoin-cli susucoin-tx
+if BUILD_BITCOIN_CLI
+  bin_PROGRAMS += susucoin-cli
+endif
+if BUILD_BITCOIN_TX
+  bin_PROGRAMS += susucoin-tx
 endif
 
 .PHONY: FORCE check-symbols check-security
