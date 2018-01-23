@@ -185,8 +185,10 @@ susucoin_test_clean : FORCE
 	rm -f $(CLEAN_BITCOIN_TEST) $(test_test_susucoin_OBJECTS) $(TEST_BINARY)
 
 check-local: $(BITCOIN_TESTS:.cpp=.cpp.test)
+if BUILD_BITCOIN_TX
 	@echo "Running test/util/susucoin-util-test.py..."
 	$(PYTHON) $(top_builddir)/test/util/susucoin-util-test.py
+endif
 	@echo "Running test/util/rpcauth-test.py..."
 	$(PYTHON) $(top_builddir)/test/util/rpcauth-test.py
 if TARGET_WINDOWS
