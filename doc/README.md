@@ -9,7 +9,7 @@ To download Susucoin Core, visit [susukino.com](https://susukino.com/).
 
 Running
 ---------------------
-The following are some helpful notes on how to run Susucoin on your native platform.
+The following are some helpful notes on how to run Bitcoin Core on your native platform.
 
 ### Unix
 
@@ -24,7 +24,7 @@ Unpack the files into a directory, and then run susucoin-qt.exe.
 
 ### macOS
 
-Drag Susucoin-Core to your applications folder, and then run Susucoin-Core.
+Drag Bitcoin Core to your applications folder, and then run Bitcoin Core.
 
 ### Need Help?
 
@@ -35,7 +35,7 @@ for help and more information.
 
 Building
 ---------------------
-The following are developer notes on how to build Susucoin on your native platform. They are not complete guides, but include notes on the necessary libraries, compile flags, etc.
+The following are developer notes on how to build Bitcoin Core on your native platform. They are not complete guides, but include notes on the necessary libraries, compile flags, etc.
 
 - [Dependencies](dependencies.md)
 - [macOS Build Notes](build-osx.md)

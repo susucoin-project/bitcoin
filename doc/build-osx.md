@@ -41,14 +41,14 @@ from the root of the repository.
 Build Susucoin Core
 ------------------------
 
-1. Clone the susucoin source code and cd into `susucoin`
+1. Clone the Bitcoin Core source code and cd into `bitcoin`
 
         git clone https://github.com/susucoin-project/susucoin
         cd susucoin
 
-2.  Build susucoin-core:
+2.  Build Bitcoin Core:
 
-    Configure and build the headless susucoin binaries as well as the GUI (if Qt is found).
+    Configure and build the headless Bitcoin Core binaries as well as the GUI (if Qt is found).
 
     You can disable the GUI build by passing `--without-gui` to configure.
 
@@ -69,7 +69,7 @@ Running
 
 Susucoin Core is now available at `./src/susucoind`
 
-Before running, it's recommended you create an RPC configuration file.
+Before running, it's recommended that you create an RPC configuration file.
 
     echo -e "rpcuser=susucoinrpc\nrpcpassword=$(xxd -l 16 -p /dev/urandom)" > "/Users/${USER}/Library/Application Support/Susucoin/susucoin.conf"
 
