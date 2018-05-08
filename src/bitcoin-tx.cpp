@@ -98,11 +98,10 @@ static int AppInitRawTx(int argc, char* argv[])
 
     if (argc < 2 || HelpRequested(gArgs)) {
         // First part of help message is specific to this utility
-        std::string strUsage = strprintf("%s susucoin-tx utility version", PACKAGE_NAME) + " " + FormatFullVersion() + "\n\n" +
-            "Usage:\n"
-              "  susucoin-tx [options] <hex-tx> [commands]  Update hex-encoded susucoin transaction\n" +
-              "  susucoin-tx [options] -create [commands]   Create hex-encoded susucoin transaction\n" +
-              "\n";
+        std::string strUsage = PACKAGE_NAME " susucoin-tx utility version " + FormatFullVersion() + "\n\n" +
+            "Usage:  susucoin-tx [options] <hex-tx> [commands]  Update hex-encoded susucoin transaction\n" +
+            "or:     susucoin-tx [options] -create [commands]   Create hex-encoded susucoin transaction\n" +
+            "\n";
         strUsage += gArgs.GetHelpMessage();
 
         fprintf(stdout, "%s", strUsage.c_str());
