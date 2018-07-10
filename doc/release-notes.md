@@ -72,6 +72,38 @@ Low-level RPC changes
 - Susucoin now relays data by default. Can be disabled using the 
   `-datacarrier` flag.
 
+- Bare multisig outputs to our keys are no longer automatically treated as
+  incoming payments. As this feature was only available for multisig outputs for
+  which you had all private keys in your wallet, there was generally no use for
+  them compared to single-key schemes. Furthermore, no address format for such
+  outputs is defined, and wallet software can't easily send to it. These outputs
+  will no longer show up in `listtransactions`, `listunspent`, or contribute to
+  your balance, unless they are explicitly watched (using `importaddress` or
+  `importmulti` with hex script argument). `signrawtransaction*` also still
+  works for them.
+
+### Logging
+
+- The log timestamp format is now ISO 8601 (e.g. "2018-02-28T12:34:56Z").
+
+- When running bitcoind with `-debug` but without `-daemon`, logging to stdout
+  is now the default behavior. Setting `-printtoconsole=1` no longer implicitly
+  disables logging to debug.log. Instead, logging to file can be explicitly disabled
+  by setting `-debuglogfile=0`.
+
+Miner block size removed
+------------------------
+
+The `-blockmaxsize` option for miners to limit their blocks' sizes was
+deprecated in V0.15.1, and has now been removed. Miners should use the
+`-blockmaxweight` option if they want to limit the weight of their blocks'
+weights.
+
+Python Support
+--------------
+
+Support for Python 2 has been discontinued for all test files and tools.
+
 Credits
 =======
 
