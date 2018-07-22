@@ -15,7 +15,7 @@ out collectively by the network. Susucoin Core is the name of open source
 software which enables the use of this currency.
 
 For more information, as well as an immediately useable, binary version of
-the Susucoin Core software, see https://susucoin.org/en/download, or read the
+the Bitcoin Core software, see https://susucoin.org/en/download, or read the
 [original whitepaper](https://susucoincore.org/susucoin.pdf).
 
 License
