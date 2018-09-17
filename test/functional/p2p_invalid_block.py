@@ -83,6 +83,7 @@ class InvalidBlockRequestTest(BitcoinTestFramework):
 
         # Check transactions for duplicate inputs
         self.log.info("Test duplicate input block.")
+
         block2_orig.vtx[2].vin.append(block2_orig.vtx[2].vin[0])
         block2_orig.vtx[2].rehash()
         block2_orig.hashMerkleRoot = block2_orig.calc_merkle_root()
