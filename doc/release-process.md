@@ -296,7 +296,9 @@ susucoin.org (see below for susucoin.org update instructions).
 
   - susucoincore.org blog post
 
-  - Update title of #susucoin on Freenode IRC
+  - bitcoincore.org RPC documentation update
+
+  - Update title of #bitcoin on Freenode IRC
 
   - Optionally twitter, reddit /r/Susucoin, ... but this will usually sort out itself
 
