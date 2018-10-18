@@ -30,8 +30,8 @@ Drag Bitcoin Core to your applications folder, and then run Bitcoin Core.
 
 * See the documentation at the [Susucoin Wiki](https://en.susucoin.it/wiki/Main_Page)
 for help and more information.
-* Ask for help on [#susucoin](http://webchat.freenode.net?channels=susucoin) on Freenode. If you don't have an IRC client use [webchat here](http://webchat.freenode.net?channels=susucoin).
-* Ask for help on the [SusucoinTalk](https://susucointalk.org/) forums, in the [Technical Support board](https://susucointalk.org/index.php?board=4.0).
+* Ask for help on [#bitcoin](http://webchat.freenode.net?channels=bitcoin) on Freenode. If you don't have an IRC client, use [webchat here](http://webchat.freenode.net?channels=bitcoin).
+* Ask for help on the [BitcoinTalk](https://bitcointalk.org/) forums, in the [Technical Support board](https://bitcointalk.org/index.php?board=4.0).
 
 Building
 ---------------------
@@ -63,9 +63,9 @@ The Susucoin repo's [root README](/README.md) contains relevant information on t
 - [Benchmarking](benchmarking.md)
 
 ### Resources
-* Discuss on the [SusucoinTalk](https://susucointalk.org/) forums, in the [Development & Technical Discussion board](https://susucointalk.org/index.php?board=6.0).
-* Discuss project-specific development on #susucoin-core-dev on Freenode. If you don't have an IRC client use [webchat here](http://webchat.freenode.net/?channels=susucoin-core-dev).
-* Discuss general Susucoin development on #susucoin-dev on Freenode. If you don't have an IRC client use [webchat here](http://webchat.freenode.net/?channels=susucoin-dev).
+* Discuss on the [BitcoinTalk](https://bitcointalk.org/) forums, in the [Development & Technical Discussion board](https://bitcointalk.org/index.php?board=6.0).
+* Discuss project-specific development on #bitcoin-core-dev on Freenode. If you don't have an IRC client, use [webchat here](http://webchat.freenode.net/?channels=bitcoin-core-dev).
+* Discuss general Bitcoin development on #bitcoin-dev on Freenode. If you don't have an IRC client, use [webchat here](http://webchat.freenode.net/?channels=bitcoin-dev).
 
 ### Miscellaneous
 - [Assets Attribution](assets-attribution.md)
