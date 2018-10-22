@@ -13,7 +13,6 @@
 #include <chain.h>
 #include <primitives/block.h>
 #include <uint256.h>
-#include <util.h>
 
 
 unsigned int LwmaCalculateNextWorkRequired(const CBlockIndex* pindexLast, const Consensus::Params& params)
