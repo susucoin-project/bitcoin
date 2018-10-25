@@ -29,7 +29,7 @@ git clone https://github.com/susucoin/susucoin
 
 ## Building Susucoin Core
 
-**Important**: Use `gmake` (the non-GNU `make` will exit with an error).
+**Important**: Use `gmake` (the non-GNU `make` will exit with an error):
 
 ```
 ./autogen.sh
