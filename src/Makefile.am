@@ -52,8 +52,12 @@ if ENABLE_AVX2
 LIBBITCOIN_CRYPTO_AVX2 = crypto/libbitcoin_crypto_avx2.a
 LIBBITCOIN_CRYPTO += $(LIBBITCOIN_CRYPTO_AVX2)
 endif
+if ENABLE_SHANI
+LIBBITCOIN_CRYPTO_SHANI = crypto/libbitcoin_crypto_shani.a
+LIBBITCOIN_CRYPTO += $(LIBBITCOIN_CRYPTO_SHANI)
+endif
 
-$(LIBSECP256K1): $(wildcard secp256k1/src/*) $(wildcard secp256k1/include/*)
+$(LIBSECP256K1): $(wildcard secp256k1/src/*.h) $(wildcard secp256k1/src/*.c) $(wildcard secp256k1/include/*)
 	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C $(@D) $(@F)
 
 # Make is not made aware of per-object dependencies to avoid limiting building parallelization
@@ -79,8 +83,11 @@ if BUILD_BITCOIND
   bin_PROGRAMS += susucoind
 endif
 
-if BUILD_BITCOIN_UTILS
-  bin_PROGRAMS += susucoin-cli susucoin-tx
+if BUILD_BITCOIN_CLI
+  bin_PROGRAMS += susucoin-cli
+endif
+if BUILD_BITCOIN_TX
+  bin_PROGRAMS += susucoin-tx
 endif
 
 .PHONY: FORCE check-symbols check-security
@@ -92,6 +99,7 @@ BITCOIN_CORE_H = \
   bech32.h \
   bloom.h \
   blockencodings.h \
+  blockfilter.h \
   chain.h \
   chainparams.h \
   chainparamsbase.h \
@@ -117,6 +125,7 @@ BITCOIN_CORE_H = \
   index/txindex.h \
   indirectmap.h \
   init.h \
+  interfaces/chain.h \
   interfaces/handler.h \
   interfaces/node.h \
   interfaces/wallet.h \
@@ -135,6 +144,7 @@ BITCOIN_CORE_H = \
   netbase.h \
   netmessagemaker.h \
   noui.h \
+  outputtype.h \
   policy/feerate.h \
   policy/fees.h \
   policy/policy.h \
@@ -153,10 +163,12 @@ BITCOIN_CORE_H = \
   rpc/register.h \
   rpc/util.h \
   scheduler.h \
+  script/descriptor.h \
   script/ismine.h \
   script/sigcache.h \
   script/sign.h \
   script/standard.h \
+  shutdown.h \
   streams.h \
   support/allocators/secure.h \
   support/allocators/zeroafterfree.h \
@@ -172,12 +184,15 @@ BITCOIN_CORE_H = \
   txmempool.h \
   ui_interface.h \
   undo.h \
-  util.h \
-  utilmoneystr.h \
-  utiltime.h \
+  util/bytevectorhash.h \
+  util/system.h \
+  util/memory.h \
+  util/moneystr.h \
+  util/time.h \
   validation.h \
   validationinterface.h \
   versionbits.h \
+  versionbitsinfo.h \
   walletinitinterface.h \
   wallet/coincontrol.h \
   wallet/crypter.h \
@@ -193,7 +208,8 @@ BITCOIN_CORE_H = \
   zmq/zmqabstractnotifier.h \
   zmq/zmqconfig.h\
   zmq/zmqnotificationinterface.h \
-  zmq/zmqpublishnotifier.h
+  zmq/zmqpublishnotifier.h \
+  zmq/zmqrpc.h
 
 
 obj/build.h: FORCE
@@ -210,6 +226,7 @@ libbitcoin_server_a_SOURCES = \
   addrman.cpp \
   bloom.cpp \
   blockencodings.cpp \
+  blockfilter.cpp \
   chain.cpp \
   checkpoints.cpp \
   consensus/tx_verify.cpp \
@@ -217,6 +234,9 @@ libbitcoin_server_a_SOURCES = \
   httpserver.cpp \
   index/base.cpp \
   index/txindex.cpp \
+  interfaces/chain.cpp \
+  interfaces/handler.cpp \
+  interfaces/node.cpp \
   init.cpp \
   dbwrapper.cpp \
   merkleblock.cpp \
@@ -224,6 +244,7 @@ libbitcoin_server_a_SOURCES = \
   net.cpp \
   net_processing.cpp \
   noui.cpp \
+  outputtype.cpp \
   policy/fees.cpp \
   policy/policy.cpp \
   policy/rbf.cpp \
@@ -235,7 +256,9 @@ libbitcoin_server_a_SOURCES = \
   rpc/net.cpp \
   rpc/rawtransaction.cpp \
   rpc/server.cpp \
+  rpc/util.cpp \
   script/sigcache.cpp \
+  shutdown.cpp \
   timedata.cpp \
   torcontrol.cpp \
   txdb.cpp \
@@ -246,13 +269,18 @@ libbitcoin_server_a_SOURCES = \
   versionbits.cpp \
   $(BITCOIN_CORE_H)
 
+if !ENABLE_WALLET
+libbitcoin_server_a_SOURCES += dummywallet.cpp
+endif
+
 if ENABLE_ZMQ
 libbitcoin_zmq_a_CPPFLAGS = $(BITCOIN_INCLUDES) $(ZMQ_CFLAGS)
 libbitcoin_zmq_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_zmq_a_SOURCES = \
   zmq/zmqabstractnotifier.cpp \
   zmq/zmqnotificationinterface.cpp \
-  zmq/zmqpublishnotifier.cpp
+  zmq/zmqpublishnotifier.cpp \
+  zmq/zmqrpc.cpp
 endif
 
 
@@ -262,6 +290,7 @@ libbitcoin_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 libbitcoin_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_wallet_a_SOURCES = \
   interfaces/wallet.cpp \
+  wallet/coincontrol.cpp \
   wallet/crypter.cpp \
   wallet/db.cpp \
   wallet/feebumper.cpp \
@@ -295,7 +324,9 @@ crypto_libbitcoin_crypto_base_a_SOURCES = \
   crypto/sha256.cpp \
   crypto/sha256.h \
   crypto/sha512.cpp \
-  crypto/sha512.h
+  crypto/sha512.h \
+  crypto/siphash.cpp \
+  crypto/siphash.h
 
 if USE_ASM
 crypto_libbitcoin_crypto_base_a_SOURCES += crypto/sha256_sse4.cpp
@@ -312,6 +343,12 @@ crypto_libbitcoin_crypto_avx2_a_CPPFLAGS = $(AM_CPPFLAGS)
 crypto_libbitcoin_crypto_avx2_a_CXXFLAGS += $(AVX2_CXXFLAGS)
 crypto_libbitcoin_crypto_avx2_a_CPPFLAGS += -DENABLE_AVX2
 crypto_libbitcoin_crypto_avx2_a_SOURCES = crypto/sha256_avx2.cpp
+
+crypto_libbitcoin_crypto_shani_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+crypto_libbitcoin_crypto_shani_a_CPPFLAGS = $(AM_CPPFLAGS)
+crypto_libbitcoin_crypto_shani_a_CXXFLAGS += $(SHANI_CXXFLAGS)
+crypto_libbitcoin_crypto_shani_a_CPPFLAGS += -DENABLE_SHANI
+crypto_libbitcoin_crypto_shani_a_SOURCES = crypto/sha256_shani.cpp
 
 # consensus: shared between all executables that validate any consensus rules.
 libbitcoin_consensus_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
@@ -345,8 +382,8 @@ libbitcoin_consensus_a_SOURCES = \
   tinyformat.h \
   uint256.cpp \
   uint256.h \
-  utilstrencodings.cpp \
-  utilstrencodings.h \
+  util/strencodings.cpp \
+  util/strencodings.h \
   version.h
 
 # common: shared between bitcoind, and bitcoin-qt and non-server tools
@@ -368,9 +405,11 @@ libbitcoin_common_a_SOURCES = \
   policy/feerate.cpp \
   protocol.cpp \
   scheduler.cpp \
+  script/descriptor.cpp \
   script/ismine.cpp \
   script/sign.cpp \
   script/standard.cpp \
+  versionbitsinfo.cpp \
   warnings.cpp \
   $(BITCOIN_CORE_H)
 
@@ -387,23 +426,22 @@ libbitcoin_util_a_SOURCES = \
   compat/glibcxx_sanity.cpp \
   compat/strnlen.cpp \
   fs.cpp \
-  interfaces/handler.cpp \
-  interfaces/node.cpp \
   logging.cpp \
   random.cpp \
   rpc/protocol.cpp \
-  rpc/util.cpp \
   support/cleanse.cpp \
   sync.cpp \
   threadinterrupt.cpp \
-  util.cpp \
-  utilmoneystr.cpp \
-  utilstrencodings.cpp \
-  utiltime.cpp \
+  util/bytevectorhash.cpp \
+  util/system.cpp \
+  util/moneystr.cpp \
+  util/strencodings.cpp \
+  util/time.cpp \
   $(BITCOIN_CORE_H)
 
 if GLIBC_BACK_COMPAT
 libbitcoin_util_a_SOURCES += compat/glibc_compat.cpp
+AM_LDFLAGS += $(COMPAT_LDFLAGS)
 endif
 
 # cli: shared between bitcoin-cli and bitcoin-qt
@@ -429,6 +467,7 @@ endif
 susucoind_LDADD = \
   $(LIBBITCOIN_SERVER) \
   $(LIBBITCOIN_WALLET) \
+  $(LIBBITCOIN_SERVER) \
   $(LIBBITCOIN_COMMON) \
   $(LIBUNIVALUE) \
   $(LIBBITCOIN_UTIL) \
@@ -440,7 +479,7 @@ susucoind_LDADD = \
   $(LIBMEMENV) \
   $(LIBSECP256K1)
 
-susucoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
+susucoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
 
 # bitcoin-cli binary #
 susucoin_cli_SOURCES = bitcoin-cli.cpp
@@ -458,7 +497,7 @@ susucoin_cli_LDADD = \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_CRYPTO)
 
-susucoin_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
+susucoin_cli_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
 #
 
 # bitcoin-tx binary #
@@ -555,9 +594,11 @@ if HARDEN
 	$(AM_V_at) READELF=$(READELF) OBJDUMP=$(OBJDUMP) $(top_srcdir)/contrib/devtools/security-check.py < $(bin_PROGRAMS)
 endif
 
+if ENABLE_BIP70
 %.pb.cc %.pb.h: %.proto
 	@test -f $(PROTOC)
 	$(AM_V_GEN) $(PROTOC) --cpp_out=$(@D) --proto_path=$(<D) $<
+endif
 
 if EMBEDDED_LEVELDB
 include Makefile.leveldb.include

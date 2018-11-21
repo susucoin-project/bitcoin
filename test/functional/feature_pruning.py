@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2017 The Bitcoin Core developers
+# Copyright (c) 2014-2018 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the pruning code.
@@ -10,7 +10,8 @@ This test takes 30 mins or more (up to 2 hours)
 """
 
 from test_framework.test_framework import BitcoinTestFramework
-from test_framework.util import *
+from test_framework.util import assert_equal, assert_greater_than, assert_raises_rpc_error, connect_nodes, mine_large_block, sync_blocks, wait_until
+
 import os
 
 MIN_BLOCKS_TO_KEEP = 288
@@ -28,18 +29,24 @@ class PruneTest(BitcoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 6
+        self.rpc_timewait = 900
 
         # Create nodes 0 and 1 to mine.
         # Create node 2 to test pruning.
-        self.full_node_default_args = ["-maxreceivebuffer=20000", "-checkblocks=5", "-limitdescendantcount=100", "-limitdescendantsize=5000", "-limitancestorcount=100", "-limitancestorsize=5000" ]
+        self.full_node_default_args = ["-maxreceivebuffer=20000", "-checkblocks=5", "-limitdescendantcount=100", "-limitdescendantsize=5000", "-limitancestorcount=100", "-limitancestorsize=5000"]
         # Create nodes 3 and 4 to test manual pruning (they will be re-started with manual pruning later)
         # Create nodes 5 to test wallet in prune mode, but do not connect
-        self.extra_args = [self.full_node_default_args,
-                           self.full_node_default_args,
-                           ["-maxreceivebuffer=20000", "-prune=550"],
-                           ["-maxreceivebuffer=20000"],
-                           ["-maxreceivebuffer=20000"],
-                           ["-prune=550"]]
+        self.extra_args = [
+            self.full_node_default_args,
+            self.full_node_default_args,
+            ["-maxreceivebuffer=20000", "-prune=550"],
+            ["-maxreceivebuffer=20000"],
+            ["-maxreceivebuffer=20000"],
+            ["-prune=550"],
+        ]
+
+    def skip_test_if_missing_module(self):
+        self.skip_if_no_wallet()
 
     def setup_network(self):
         self.setup_nodes()
@@ -54,8 +61,10 @@ class PruneTest(BitcoinTestFramework):
         sync_blocks(self.nodes[0:5])
 
     def setup_nodes(self):
-        self.add_nodes(self.num_nodes, self.extra_args, timewait=900)
+        self.add_nodes(self.num_nodes, self.extra_args)
         self.start_nodes()
+        for n in self.nodes:
+            n.importprivkey(privkey=n.get_deterministic_priv_key().key, label='coinbase', rescan=False)
 
     def create_big_chain(self):
         # Start by creating some coinbases we can spend later

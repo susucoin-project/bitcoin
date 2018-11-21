@@ -23,41 +23,30 @@ or `susucoind`/`susucoin-qt` (on Linux).
 Compatibility
 ==============
 
-Susucoin Core is extensively tested on multiple operating systems using
-the Linux kernel, macOS 10.8+, and Windows 7 and newer (Windows XP is not supported).
+Bitcoin Core is extensively tested on multiple operating systems using
+the Linux kernel, macOS 10.10+, and Windows 7 and newer (Windows XP is not supported).
 
 Susucoin Core should also work on most other Unix-like systems but is not
 frequently tested on them.
 
+From 0.17.0 onwards macOS <10.10 is no longer supported. 0.17.0 is built using Qt 5.9.x, which doesn't
+support versions of macOS older than 10.10.
+
 Notable changes
 ===============
 
-Bug Fixes
----------
+Command line option changes
+---------------------------
 
-A reindexing issue was fixed caused by the genesis block being a version 1 block.
+The `-enablebip61` command line option (introduced in Bitcoin Core 0.17.0) is
+used to toggle sending of BIP 61 reject messages. Reject messages have no use
+case on the P2P network and are only logged for debugging by most network
+nodes. The option will now by default be off for improved privacy and security
+as well as reduced upload usage. The option can explicitly be turned on for
+local-network debugging purposes.
 
-Denial-of-Service vulnerability
--------------------------------
-
-A denial-of-service vulnerability exploitable by miners has been discovered in
-Bitcoin Core versions 0.14.0 up to 0.16.99. It is recommended to upgrade any of
-the vulnerable versions as soon as possible. 
-
-Low-level data storage changes
-------------------------------
-
-- Maximum size of data in data carrier transactions has been increased from
-  `83` to `516`.
-
-- Maximum amount of `OP_RETURN` transactions in a txout has been increased 
-  from `1` to `16`.
-
-Low-level RPC changes
----------------------
-
-- Susucoin now relays data by default. Can be disabled using the 
-  `-datacarrier` flag.
+Example item
+------------
 
 Credits
 =======

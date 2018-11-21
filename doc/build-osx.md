@@ -20,17 +20,15 @@ Dependencies
 
 See [dependencies.md](dependencies.md) for a complete overview.
 
-If you want to build the disk image with `make deploy` (.dmg / optional), you need RSVG
+If you want to build the disk image with `make deploy` (.dmg / optional), you need RSVG:
 
     brew install librsvg
-
-NOTE: Building with Qt4 is still supported, however, could result in a broken UI. Building with Qt5 is recommended.
 
 Berkeley DB
 -----------
 It is recommended to use Berkeley DB 4.8. If you have to build it yourself,
 you can use [the installation script included in contrib/](/contrib/install_db4.sh)
-like so
+like so:
 
 ```shell
 ./contrib/install_db4.sh .
@@ -38,19 +36,19 @@ like so
 
 from the root of the repository.
 
-**Note**: You only need Berkeley DB if the wallet is enabled (see the section *Disable-Wallet mode* below).
+**Note**: You only need Berkeley DB if the wallet is enabled (see [*Disable-wallet mode*](/doc/build-osx.md#disable-wallet-mode)).
 
 Build Susucoin Core
 ------------------------
 
-1. Clone the susucoin source code and cd into `susucoin`
+1. Clone the Bitcoin Core source code:
 
         git clone https://github.com/susucoin-project/susucoin
         cd susucoin
 
-2.  Build susucoin-core:
+2.  Build Bitcoin Core:
 
-    Configure and build the headless susucoin binaries as well as the GUI (if Qt is found).
+    Configure and build the headless Bitcoin Core binaries as well as the GUI (if Qt is found).
 
     You can disable the GUI build by passing `--without-gui` to configure.
 
@@ -66,18 +64,29 @@ Build Susucoin Core
 
         make deploy
 
+Disable-wallet mode
+--------------------
+When the intention is to run only a P2P node without a wallet, Bitcoin Core may be compiled in
+disable-wallet mode with:
+
+    ./configure --disable-wallet
+
+In this case there is no dependency on Berkeley DB 4.8.
+
+Mining is also possible in disable-wallet mode using the `getblocktemplate` RPC call.
+
 Running
 -------
 
 Susucoin Core is now available at `./src/susucoind`
 
-Before running, it's recommended you create an RPC configuration file.
+Before running, you may create an empty configuration file:
 
-    echo -e "rpcuser=susucoinrpc\nrpcpassword=$(xxd -l 16 -p /dev/urandom)" > "/Users/${USER}/Library/Application Support/Susucoin/susucoin.conf"
+    touch "/Users/${USER}/Library/Application Support/Bitcoin/bitcoin.conf"
 
     chmod 600 "/Users/${USER}/Library/Application Support/Susucoin/susucoin.conf"
 
-The first time you run susucoind, it will start downloading the blockchain. This process could take several hours.
+The first time you run bitcoind, it will start downloading the blockchain. This process could take many hours, or even days on slower than average systems.
 
 You can monitor the download process by looking at the debug.log file:
 
@@ -93,6 +102,6 @@ Other commands:
 Notes
 -----
 
-* Tested on OS X 10.8 Mountain Lion through macOS 10.13 High Sierra on 64-bit Intel processors only.
+* Tested on OS X 10.10 Yosemite through macOS 10.13 High Sierra on 64-bit Intel processors only.
 
 * Building with downloaded Qt binaries is not officially supported. See the notes in [#7714](https://github.com/bitcoin/bitcoin/issues/7714)

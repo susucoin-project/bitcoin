@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2017 The Bitcoin Core developers
+// Copyright (c) 2015-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,11 +7,13 @@
 #include <crypto/sha256.h>
 #include <key.h>
 #include <random.h>
-#include <util.h>
-#include <utilstrencodings.h>
+#include <util/system.h>
+#include <util/strencodings.h>
 #include <validation.h>
 
 #include <memory>
+
+const std::function<std::string(const char*)> G_TRANSLATION_FUN = nullptr;
 
 static const int64_t DEFAULT_BENCH_EVALUATIONS = 5;
 static const char* DEFAULT_BENCH_FILTER = ".*";
@@ -38,6 +40,14 @@ static void SetupBenchArgs()
     gArgs.AddArg("-help", "", false, OptionsCategory::HIDDEN);
 }
 
+static fs::path SetDataDir()
+{
+    fs::path ret = fs::temp_directory_path() / "bench_bitcoin" / fs::unique_path();
+    fs::create_directories(ret);
+    gArgs.ForceSetArg("-datadir", ret.string());
+    return ret;
+}
+
 int main(int argc, char** argv)
 {
     SetupBenchArgs();
@@ -52,6 +62,9 @@ int main(int argc, char** argv)
 
         return EXIT_SUCCESS;
     }
+
+    // Set the datadir after parsing the bench options
+    const fs::path bench_datadir{SetDataDir()};
 
     SHA256AutoDetect();
     RandomInit();
@@ -69,7 +82,7 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    std::unique_ptr<benchmark::Printer> printer(new benchmark::ConsolePrinter());
+    std::unique_ptr<benchmark::Printer> printer = MakeUnique<benchmark::ConsolePrinter>();
     std::string printer_arg = gArgs.GetArg("-printer", DEFAULT_BENCH_PRINTER);
     if ("plot" == printer_arg) {
         printer.reset(new benchmark::PlotlyPrinter(
@@ -79,6 +92,8 @@ int main(int argc, char** argv)
     }
 
     benchmark::BenchRunner::RunAll(*printer, evaluations, scaling_factor, regex_filter, is_list_only);
+
+    fs::remove_all(bench_datadir);
 
     ECC_Stop();
 

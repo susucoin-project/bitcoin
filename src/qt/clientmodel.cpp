@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2017 The Bitcoin Core developers
+// Copyright (c) 2011-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -20,15 +20,13 @@
 #include <netbase.h>
 #include <txmempool.h>
 #include <ui_interface.h>
-#include <util.h>
+#include <util/system.h>
 #include <warnings.h>
 
 #include <stdint.h>
 
 #include <QDebug>
 #include <QTimer>
-
-class CBlockIndex;
 
 static int64_t nLastHeaderTipUpdateNotification = 0;
 static int64_t nLastBlockTipUpdateNotification = 0;
@@ -46,7 +44,7 @@ ClientModel::ClientModel(interfaces::Node& node, OptionsModel *_optionsModel, QO
     peerTableModel = new PeerTableModel(m_node, this);
     banTableModel = new BanTableModel(m_node, this);
     pollTimer = new QTimer(this);
-    connect(pollTimer, SIGNAL(timeout()), this, SLOT(updateTimer()));
+    connect(pollTimer, &QTimer::timeout, this, &ClientModel::updateTimer);
     pollTimer->start(MODEL_UPDATE_DELAY);
 
     subscribeToCoreSignals();
@@ -177,6 +175,11 @@ QString ClientModel::formatClientStartupTime() const
 QString ClientModel::dataDir() const
 {
     return GUIUtil::boostPathToQString(GetDataDir());
+}
+
+QString ClientModel::blocksDir() const
+{
+    return GUIUtil::boostPathToQString(GetBlocksDir());
 }
 
 void ClientModel::updateBanlist()

@@ -67,6 +67,8 @@ If a particular commit references another issue, please add the reference. For
 example: `refs #1234` or `fixes #4321`. Using the `fixes` or `closes` keywords
 will cause the corresponding issue to be closed when the pull request is merged.
 
+Commit messages should never contain any `@` mentions.
+
 Please refer to the [Git manual](https://git-scm.com/doc) for more information
 about Git.
 
@@ -119,6 +121,8 @@ At this stage one should expect comments and review from other contributors. You
 can add more commits to your pull request by committing them locally and pushing
 to your fork until you have satisfied all feedback.
 
+Note: Code review is a burdensome but important part of the development process, and as such, certain types of pull requests are rejected. In general, if the **improvements** do not warrant the **review effort** required, the PR has a high chance of being rejected. It is up to the PR author to convince the reviewers that the changes warrant the review effort, and if reviewers are "Concept NAK'ing" the PR, the author may need to present arguments and/or do research backing their suggested changes.
+
 Squashing Commits
 ---------------------------
 If your pull request is accepted for merging, you may be asked by a maintainer
@@ -132,6 +136,10 @@ before it will be merged. The basic squashing workflow is shown below.
     # On the next screen, edit/refine commit messages.
     # Save and quit.
     git push -f # (force push to GitHub)
+
+Please update the resulting commit message if needed, it should read as a
+coherent message. In most cases this means that you should not just list the
+interim commits.
 
 If you have problems with squashing (or other workflows with `git`), you can
 alternatively enable "Allow edits from maintainers" in the right GitHub

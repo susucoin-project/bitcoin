@@ -1,11 +1,11 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2009-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <netaddress.h>
 #include <hash.h>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 #include <tinyformat.h>
 
 static const unsigned char pchIPv4[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff };
@@ -248,7 +248,7 @@ enum Network CNetAddr::GetNetwork() const
         return NET_IPV4;
 
     if (IsTor())
-        return NET_TOR;
+        return NET_ONION;
 
     return NET_IPV6;
 }
@@ -302,6 +302,9 @@ bool CNetAddr::GetInAddr(struct in_addr* pipv4Addr) const
 
 bool CNetAddr::GetIn6Addr(struct in6_addr* pipv6Addr) const
 {
+    if (!IsIPv6()) {
+        return false;
+    }
     memcpy(pipv6Addr, ip, 16);
     return true;
 }
@@ -357,7 +360,7 @@ std::vector<unsigned char> CNetAddr::GetGroup() const
     }
     else if (IsTor())
     {
-        nClass = NET_TOR;
+        nClass = NET_ONION;
         nStartByte = 6;
         nBits = 4;
     }
@@ -435,11 +438,11 @@ int CNetAddr::GetReachabilityFrom(const CNetAddr *paddrPartner) const
         case NET_IPV4:   return REACH_IPV4;
         case NET_IPV6:   return fTunnel ? REACH_IPV6_WEAK : REACH_IPV6_STRONG; // only prefer giving our IPv6 address if it's not tunnelled
         }
-    case NET_TOR:
+    case NET_ONION:
         switch(ourNet) {
         default:         return REACH_DEFAULT;
         case NET_IPV4:   return REACH_IPV4; // Tor users can connect to IPv4 as well
-        case NET_TOR:    return REACH_PRIVATE;
+        case NET_ONION:    return REACH_PRIVATE;
         }
     case NET_TEREDO:
         switch(ourNet) {
@@ -456,7 +459,7 @@ int CNetAddr::GetReachabilityFrom(const CNetAddr *paddrPartner) const
         case NET_TEREDO:  return REACH_TEREDO;
         case NET_IPV6:    return REACH_IPV6_WEAK;
         case NET_IPV4:    return REACH_IPV4;
-        case NET_TOR:     return REACH_PRIVATE; // either from Tor, or don't care about our address
+        case NET_ONION:     return REACH_PRIVATE; // either from Tor, or don't care about our address
         }
     }
 }

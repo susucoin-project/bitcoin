@@ -5,8 +5,10 @@ Developer Notes
 **Table of Contents**
 
 - [Developer Notes](#developer-notes)
-    - [Coding Style](#coding-style)
+    - [Coding Style (General)](#coding-style-general)
+    - [Coding Style (C++)](#coding-style-c)
     - [Doxygen comments](#doxygen-comments)
+    - [Coding Style (Python)](#coding-style-python)
     - [Development tips and tricks](#development-tips-and-tricks)
         - [Compiling for debugging](#compiling-for-debugging)
         - [Compiling for gprof profiling](#compiling-for-gprof-profiling)
@@ -35,8 +37,8 @@ Developer Notes
 
 <!-- markdown-toc end -->
 
-Coding Style
----------------
+Coding Style (General)
+----------------------
 
 Various coding styles have been used during the history of the codebase,
 and the result is not very consistent. However, we're now trying to converge to
@@ -45,6 +47,9 @@ style over attempting to mimic the surrounding style, except for move-only
 commits.
 
 Do not submit patches solely to modify the style of existing code.
+
+Coding Style (C++)
+------------------
 
 - **Indentation and whitespace rules** as specified in
 [src/.clang-format](/src/.clang-format). You can use the provided
@@ -64,7 +69,7 @@ tool to clean up patches automatically before submission.
 - **Symbol naming conventions**. These are preferred in new code, but are not
 required when doing so would need changes to significant pieces of existing
 code.
-  - Variable and namespace names are all lowercase, and may use `_` to
+  - Variable (including function arguments) and namespace names are all lowercase, and may use `_` to
     separate words (snake_case).
     - Class member variables have a `m_` prefix.
     - Global variables have a `g_` prefix.
@@ -174,6 +179,11 @@ but if possible use one of the above styles.
 
 Documentation can be generated with `make docs` and cleaned up with `make clean-docs`.
 
+Coding Style (Python)
+---------------------
+
+Refer to [/test/functional/README.md#style-guidelines](/test/functional/README.md#style-guidelines).
+
 Development tips and tricks
 ---------------------------
 
@@ -247,7 +257,7 @@ make cov
 
 **Sanitizers**
 
-Susucoin can be compiled with various "sanitizers" enabled, which add
+Bitcoin Core can be compiled with various "sanitizers" enabled, which add
 instrumentation for issues regarding things like memory safety, thread race
 conditions, or undefined behavior. This is controlled with the
 `--with-sanitizers` configure flag, which should be a comma separated list of
@@ -429,6 +439,11 @@ General C++
 
   - *Rationale*: This avoids memory and resource leaks, and ensures exception safety
 
+- Use `MakeUnique()` to construct objects owned by `unique_ptr`s
+
+  - *Rationale*: `MakeUnique` is concise and ensures exception safety in complex expressions.
+    `MakeUnique` is a temporary project local implementation of `std::make_unique` (C++14).
+
 C++ data structures
 --------------------
 
@@ -502,7 +517,7 @@ Strings and formatting
   - *Rationale*: These functions do overflow checking, and avoid pesky locale issues.
 
 - Avoid using locale dependent functions if possible. You can use the provided
-  [`lint-locale-dependence.sh`](/contrib/devtools/lint-locale-dependence.sh)
+  [`lint-locale-dependence.sh`](/test/lint/lint-locale-dependence.sh)
   to check for accidental use of locale dependent functions.
 
   - *Rationale*: Unnecessary locale dependence can cause bugs that are very tricky to isolate and fix.
@@ -690,10 +705,10 @@ Current subtrees include:
   - Upstream at https://github.com/google/leveldb ; Maintained by Google, but
     open important PRs to Core to avoid delay.
   - **Note**: Follow the instructions in [Upgrading LevelDB](#upgrading-leveldb) when
-    merging upstream changes to the leveldb subtree.
+    merging upstream changes to the LevelDB subtree.
 
 - src/libsecp256k1
-  - Upstream at https://github.com/bitcoin-core/secp256k1/ ; actively maintaned by Core contributors.
+  - Upstream at https://github.com/bitcoin-core/secp256k1/ ; actively maintained by Core contributors.
 
 - src/crypto/ctaes
   - Upstream at https://github.com/bitcoin-core/ctaes ; actively maintained by Core contributors.

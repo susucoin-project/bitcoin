@@ -1,4 +1,4 @@
-// Copyright (c) 2017 The Bitcoin Core developers
+// Copyright (c) 2017-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,7 +7,9 @@
 #include <rpc/protocol.h>
 #include <rpc/util.h>
 #include <tinyformat.h>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
+
+InitInterfaces* g_rpc_interfaces = nullptr;
 
 // Converts a hex string to a public key if possible
 CPubKey HexToPubKey(const std::string& hex_in)

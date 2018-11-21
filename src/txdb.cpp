@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2009-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -9,10 +9,10 @@
 #include <hash.h>
 #include <random.h>
 #include <pow.h>
+#include <shutdown.h>
 #include <uint256.h>
-#include <util.h>
+#include <util/system.h>
 #include <ui_interface.h>
-#include <init.h>
 
 #include <stdint.h>
 
@@ -53,7 +53,7 @@ struct CoinEntry {
 
 }
 
-CCoinsViewDB::CCoinsViewDB(size_t nCacheSize, bool fMemory, bool fWipe) : db(GetDataDir() / "chainstate", nCacheSize, fMemory, fWipe, true) 
+CCoinsViewDB::CCoinsViewDB(size_t nCacheSize, bool fMemory, bool fWipe) : db(GetDataDir() / "chainstate", nCacheSize, fMemory, fWipe, true)
 {
 }
 
@@ -160,9 +160,8 @@ bool CBlockTreeDB::WriteReindexing(bool fReindexing) {
         return Erase(DB_REINDEX_FLAG);
 }
 
-bool CBlockTreeDB::ReadReindexing(bool &fReindexing) {
+void CBlockTreeDB::ReadReindexing(bool &fReindexing) {
     fReindexing = Exists(DB_REINDEX_FLAG);
-    return true;
 }
 
 bool CBlockTreeDB::ReadLastBlockFile(int &nFile) {

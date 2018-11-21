@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2017 The Bitcoin Core developers
+// Copyright (c) 2011-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -14,13 +14,15 @@
 #include <qt/clientmodel.h>
 #include <qt/guiconstants.h>
 #include <qt/intro.h>
+#ifdef ENABLE_BIP70
 #include <qt/paymentrequestplus.h>
+#endif
 #include <qt/guiutil.h>
 
 #include <clientversion.h>
 #include <init.h>
 #include <interfaces/node.h>
-#include <util.h>
+#include <util/system.h>
 
 #include <stdio.h>
 
@@ -70,8 +72,7 @@ HelpMessageDialog::HelpMessageDialog(interfaces::Node& node, QWidget *parent, bo
         ui->helpMessage->setVisible(false);
     } else {
         setWindowTitle(tr("Command-line options"));
-        QString header = "Usage:\n"
-            "  susucoin-qt [command-line options]                     \n";
+        QString header = "Usage:  susucoin-qt [command-line options]                     \n";
         QTextCursor cursor(ui->helpMessage->document());
         cursor.insertText(version);
         cursor.insertBlock();
@@ -80,7 +81,7 @@ HelpMessageDialog::HelpMessageDialog(interfaces::Node& node, QWidget *parent, bo
 
         std::string strUsage = gArgs.GetHelpMessage();
         QString coreOptions = QString::fromStdString(strUsage);
-        text = version + "\n" + header + "\n" + coreOptions;
+        text = version + "\n\n" + header + "\n" + coreOptions;
 
         QTextTableFormat tf;
         tf.setBorderStyle(QTextFrameFormat::BorderStyle_None);

@@ -1,9 +1,10 @@
-// Copyright (c) 2013-2017 The Bitcoin Core developers
+// Copyright (c) 2013-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <crypto/siphash.h>
 #include <hash.h>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 #include <test/test_bitcoin.h>
 
 #include <vector>

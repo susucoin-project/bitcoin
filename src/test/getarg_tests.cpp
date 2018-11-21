@@ -1,8 +1,8 @@
-// Copyright (c) 2012-2017 The Bitcoin Core developers
+// Copyright (c) 2012-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <util.h>
+#include <util/system.h>
 #include <test/test_bitcoin.h>
 
 #include <string>
@@ -24,7 +24,7 @@ static void ResetArgs(const std::string& strArg)
 
     // Convert to char*:
     std::vector<const char*> vecChar;
-    for (std::string& s : vecArg)
+    for (const std::string& s : vecArg)
         vecChar.push_back(s.c_str());
 
     std::string error;

@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2009-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -64,7 +64,7 @@ public:
     COutPoint prevout;
     CScript scriptSig;
     uint32_t nSequence;
-    CScriptWitness scriptWitness; //! Only serialized through CTransaction
+    CScriptWitness scriptWitness; //!< Only serialized through CTransaction
 
     /* Setting nSequence to this value for every input in a transaction
      * disables nLockTime. */
@@ -73,7 +73,7 @@ public:
     /* Below flags apply in the context of BIP 68*/
     /* If this flag set, CTxIn::nSequence is NOT interpreted as a
      * relative lock-time. */
-    static const uint32_t SEQUENCE_LOCKTIME_DISABLE_FLAG = (1 << 31);
+    static const uint32_t SEQUENCE_LOCKTIME_DISABLE_FLAG = (1U << 31);
 
     /* If CTxIn::nSequence encodes a relative lock-time and this flag
      * is set, the relative lock-time has units of 512 seconds,
@@ -387,11 +387,6 @@ struct CMutableTransaction
      * fly, as opposed to GetHash() in CTransaction, which uses a cached result.
      */
     uint256 GetHash() const;
-
-    friend bool operator==(const CMutableTransaction& a, const CMutableTransaction& b)
-    {
-        return a.GetHash() == b.GetHash();
-    }
 
     bool HasWitness() const
     {

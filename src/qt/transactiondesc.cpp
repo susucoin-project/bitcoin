@@ -1,6 +1,10 @@
-// Copyright (c) 2011-2017 The Bitcoin Core developers
+// Copyright (c) 2011-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+#ifdef HAVE_CONFIG_H
+#include <config/bitcoin-config.h>
+#endif
 
 #include <qt/transactiondesc.h>
 
@@ -15,7 +19,7 @@
 #include <validation.h>
 #include <script/script.h>
 #include <timedata.h>
-#include <util.h>
+#include <util/system.h>
 #include <wallet/db.h>
 #include <wallet/wallet.h>
 #include <policy/policy.h>
@@ -23,7 +27,7 @@
 #include <stdint.h>
 #include <string>
 
-QString TransactionDesc::FormatTxStatus(const interfaces::WalletTx& wtx, const interfaces::WalletTxStatus& status, bool inMempool, int numBlocks, int64_t adjustedTime)
+QString TransactionDesc::FormatTxStatus(const interfaces::WalletTx& wtx, const interfaces::WalletTxStatus& status, bool inMempool, int numBlocks)
 {
     if (!status.is_final)
     {
@@ -37,8 +41,6 @@ QString TransactionDesc::FormatTxStatus(const interfaces::WalletTx& wtx, const i
         int nDepth = status.depth_in_main_chain;
         if (nDepth < 0)
             return tr("conflicted with a transaction with %1 confirmations").arg(-nDepth);
-        else if (adjustedTime - status.time_received > 2 * 60 && status.request_count == 0)
-            return tr("%1/offline").arg(nDepth);
         else if (nDepth == 0)
             return tr("0/unconfirmed, %1").arg((inMempool ? tr("in memory pool") : tr("not in memory pool"))) + (status.is_abandoned ? ", "+tr("abandoned") : "");
         else if (nDepth < 6)
@@ -51,11 +53,10 @@ QString TransactionDesc::FormatTxStatus(const interfaces::WalletTx& wtx, const i
 QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wallet, TransactionRecord *rec, int unit)
 {
     int numBlocks;
-    int64_t adjustedTime;
     interfaces::WalletTxStatus status;
     interfaces::WalletOrderForm orderForm;
     bool inMempool;
-    interfaces::WalletTx wtx = wallet.getWalletTxDetails(rec->hash, status, orderForm, inMempool, numBlocks, adjustedTime);
+    interfaces::WalletTx wtx = wallet.getWalletTxDetails(rec->hash, status, orderForm, inMempool, numBlocks);
 
     QString strHTML;
 
@@ -67,15 +68,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
     CAmount nDebit = wtx.debit;
     CAmount nNet = nCredit - nDebit;
 
-    strHTML += "<b>" + tr("Status") + ":</b> " + FormatTxStatus(wtx, status, inMempool, numBlocks, adjustedTime);
-    int nRequests = status.request_count;
-    if (nRequests != -1)
-    {
-        if (nRequests == 0)
-            strHTML += tr(", has not been successfully broadcast yet");
-        else if (nRequests > 0)
-            strHTML += tr(", broadcast through %n node(s)", "", nRequests);
-    }
+    strHTML += "<b>" + tr("Status") + ":</b> " + FormatTxStatus(wtx, status, inMempool, numBlocks);
     strHTML += "<br>";
 
     strHTML += "<b>" + tr("Date") + ":</b> " + (nTime ? GUIUtil::dateTimeStr(nTime) : "") + "<br>";
@@ -162,13 +155,13 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
     else
     {
         isminetype fAllFromMe = ISMINE_SPENDABLE;
-        for (isminetype mine : wtx.txin_is_mine)
+        for (const isminetype mine : wtx.txin_is_mine)
         {
             if(fAllFromMe > mine) fAllFromMe = mine;
         }
 
         isminetype fAllToMe = ISMINE_SPENDABLE;
-        for (isminetype mine : wtx.txout_is_mine)
+        for (const isminetype mine : wtx.txout_is_mine)
         {
             if(fAllToMe > mine) fAllToMe = mine;
         }
@@ -267,6 +260,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
         if (r.first == "Message")
             strHTML += "<br><b>" + tr("Message") + ":</b><br>" + GUIUtil::HtmlEscape(r.second, true) + "<br>";
 
+#ifdef ENABLE_BIP70
     //
     // PaymentRequest info:
     //
@@ -281,6 +275,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
                 strHTML += "<b>" + tr("Merchant") + ":</b> " + GUIUtil::HtmlEscape(merchant) + "<br>";
         }
     }
+#endif
 
     if (wtx.is_coinbase)
     {

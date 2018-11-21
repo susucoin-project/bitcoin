@@ -1,7 +1,7 @@
 dnl require autoconf 2.60 (AS_ECHO/AS_ECHO_N)
 AC_PREREQ([2.60])
 define(_CLIENT_VERSION_MAJOR, 0)
-define(_CLIENT_VERSION_MINOR, 16)
+define(_CLIENT_VERSION_MINOR, 17)
 define(_CLIENT_VERSION_REVISION, 99)
 define(_CLIENT_VERSION_BUILD, 1)
 define(_CLIENT_VERSION_IS_RELEASE, true)
@@ -130,6 +130,12 @@ AC_ARG_ENABLE(gui-tests,
     [use_gui_tests=$enableval],
     [use_gui_tests=$use_tests])
 
+AC_ARG_WITH([rapidcheck],
+  [AS_HELP_STRING([--with-rapidcheck],
+  [enable RapidCheck property based tests (default is yes if librapidcheck is found)])],
+  [use_rapidcheck=$withval],
+  [use_rapidcheck=auto])
+
 AC_ARG_ENABLE(bench,
     AS_HELP_STRING([--disable-bench],[do not compile benchmarks (default is to compile)]),
     [use_bench=$enableval],
@@ -203,6 +209,11 @@ AC_ARG_ENABLE([zmq],
   [disable ZMQ notifications])],
   [use_zmq=$enableval],
   [use_zmq=yes])
+AC_ARG_ENABLE([bip70],
+  [AS_HELP_STRING([--disable-bip70],
+  [disable BIP70 (payment protocol) support in GUI (enabled by default)])],
+  [enable_bip70=$enableval],
+  [enable_bip70=yes])
 
 AC_ARG_WITH([protoc-bindir],[AS_HELP_STRING([--with-protoc-bindir=BIN_DIR],[specify protoc bin path])], [protoc_bin_path=$withval], [])
 
@@ -263,6 +274,7 @@ if test "x$enable_debug" = xyes; then
 
   AX_CHECK_PREPROC_FLAG([-DDEBUG],[[DEBUG_CPPFLAGS="$DEBUG_CPPFLAGS -DDEBUG"]],,[[$CXXFLAG_WERROR]])
   AX_CHECK_PREPROC_FLAG([-DDEBUG_LOCKORDER],[[DEBUG_CPPFLAGS="$DEBUG_CPPFLAGS -DDEBUG_LOCKORDER"]],,[[$CXXFLAG_WERROR]])
+  AX_CHECK_COMPILE_FLAG([-ftrapv],[DEBUG_CXXFLAGS="$DEBUG_CXXFLAGS -ftrapv"],,[[$CXXFLAG_WERROR]])
 fi
 
 if test x$use_sanitizers != x; then
@@ -301,6 +313,8 @@ if test "x$CXXFLAGS_overridden" = "xno"; then
   AX_CHECK_COMPILE_FLAG([-Wvla],[WARN_CXXFLAGS="$WARN_CXXFLAGS -Wvla"],,[[$CXXFLAG_WERROR]])
   AX_CHECK_COMPILE_FLAG([-Wformat-security],[WARN_CXXFLAGS="$WARN_CXXFLAGS -Wformat-security"],,[[$CXXFLAG_WERROR]])
   AX_CHECK_COMPILE_FLAG([-Wthread-safety-analysis],[WARN_CXXFLAGS="$WARN_CXXFLAGS -Wthread-safety-analysis"],,[[$CXXFLAG_WERROR]])
+  AX_CHECK_COMPILE_FLAG([-Wrange-loop-analysis],[WARN_CXXFLAGS="$WARN_CXXFLAGS -Wrange-loop-analysis"],,[[$CXXFLAG_WERROR]])
+  AX_CHECK_COMPILE_FLAG([-Wredundant-decls],[WARN_CXXFLAGS="$WARN_CXXFLAGS -Wredundant-decls"],,[[$CXXFLAG_WERROR]])
 
   ## Some compilers (gcc) ignore unknown -Wno-* options, but warn about all
   ## unknown options if any other warning is produced. Test the -Wfoo case, and
@@ -318,6 +332,7 @@ fi
 AX_CHECK_COMPILE_FLAG([-msse4.2],[[SSE42_CXXFLAGS="-msse4.2"]],,[[$CXXFLAG_WERROR]])
 AX_CHECK_COMPILE_FLAG([-msse4.1],[[SSE41_CXXFLAGS="-msse4.1"]],,[[$CXXFLAG_WERROR]])
 AX_CHECK_COMPILE_FLAG([-mavx -mavx2],[[AVX2_CXXFLAGS="-mavx -mavx2"]],,[[$CXXFLAG_WERROR]])
+AX_CHECK_COMPILE_FLAG([-msse4 -msha],[[SHANI_CXXFLAGS="-msse4 -msha"]],,[[$CXXFLAG_WERROR]])
 
 TEMP_CXXFLAGS="$CXXFLAGS"
 CXXFLAGS="$CXXFLAGS $SSE42_CXXFLAGS"
@@ -346,11 +361,7 @@ CXXFLAGS="$CXXFLAGS $SSE41_CXXFLAGS"
 AC_MSG_CHECKING(for SSE4.1 intrinsics)
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
     #include <stdint.h>
-    #if defined(_MSC_VER)
     #include <immintrin.h>
-    #elif defined(__GNUC__)
-    #include <x86intrin.h>
-    #endif
   ]],[[
     __m128i l = _mm_set1_epi32(0);
     return _mm_extract_epi32(l, 3);
@@ -365,16 +376,29 @@ CXXFLAGS="$CXXFLAGS $AVX2_CXXFLAGS"
 AC_MSG_CHECKING(for AVX2 intrinsics)
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
     #include <stdint.h>
-    #if defined(_MSC_VER)
     #include <immintrin.h>
-    #elif defined(__GNUC__) && defined(__AVX2__)
-    #include <x86intrin.h>
-    #endif
   ]],[[
     __m256i l = _mm256_set1_epi32(0);
     return _mm256_extract_epi32(l, 7);
   ]])],
  [ AC_MSG_RESULT(yes); enable_avx2=yes; AC_DEFINE(ENABLE_AVX2, 1, [Define this symbol to build code that uses AVX2 intrinsics]) ],
+ [ AC_MSG_RESULT(no)]
+)
+CXXFLAGS="$TEMP_CXXFLAGS"
+
+TEMP_CXXFLAGS="$CXXFLAGS"
+CXXFLAGS="$CXXFLAGS $SHANI_CXXFLAGS"
+AC_MSG_CHECKING(for SHA-NI intrinsics)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+    #include <stdint.h>
+    #include <immintrin.h>
+  ]],[[
+    __m128i i = _mm_set1_epi32(0);
+    __m128i j = _mm_set1_epi32(1);
+    __m128i k = _mm_set1_epi32(2);
+    return _mm_extract_epi32(_mm_sha256rnds2_epu32(i, i, k), 0);
+  ]])],
+ [ AC_MSG_RESULT(yes); enable_shani=yes; AC_DEFINE(ENABLE_SHANI, 1, [Define this symbol to build code that uses SHA-NI intrinsics]) ],
  [ AC_MSG_RESULT(no)]
 )
 CXXFLAGS="$TEMP_CXXFLAGS"
@@ -386,6 +410,18 @@ AC_ARG_WITH([utils],
   [build bitcoin-cli bitcoin-tx (default=yes)])],
   [build_bitcoin_utils=$withval],
   [build_bitcoin_utils=yes])
+
+AC_ARG_ENABLE([util-cli],
+  [AS_HELP_STRING([--enable-util-cli],
+  [build bitcoin-cli])],
+  [build_bitcoin_cli=$enableval],
+  [build_bitcoin_cli=$build_bitcoin_utils])
+
+AC_ARG_ENABLE([util-tx],
+  [AS_HELP_STRING([--enable-util-tx],
+  [build bitcoin-tx])],
+  [build_bitcoin_tx=$enableval],
+  [build_bitcoin_tx=$build_bitcoin_utils])
 
 AC_ARG_WITH([libs],
   [AS_HELP_STRING([--with-libs],
@@ -529,9 +565,16 @@ case $host in
      CPPFLAGS="$CPPFLAGS -DMAC_OSX"
      OBJCXXFLAGS="$CXXFLAGS"
      ;;
+   *android*)
+     dnl make sure android stays above linux for hosts like *linux-android*
+     LEVELDB_TARGET_FLAGS="-DOS_ANDROID"
+     ;;
    *linux*)
      TARGET_OS=linux
      LEVELDB_TARGET_FLAGS="-DOS_LINUX"
+     ;;
+   *kfreebsd*)
+     LEVELDB_TARGET_FLAGS="-DOS_KFREEBSD"
      ;;
    *freebsd*)
      LEVELDB_TARGET_FLAGS="-DOS_FREEBSD"
@@ -542,10 +585,17 @@ case $host in
    *netbsd*)
      LEVELDB_TARGET_FLAGS="-DOS_NETBSD"
      ;;
+   *dragonfly*)
+     LEVELDB_TARGET_FLAGS="-DOS_DRAGONFLYBSD"
+     ;;
+   *solaris*)
+     LEVELDB_TARGET_FLAGS="-DOS_SOLARIS"
+     ;;
+   *hpux*)
+     LEVELDB_TARGET_FLAGS="-DOS_HPUX"
+     ;;
    *)
-     OTHER_OS=`echo ${host_os} | awk '{print toupper($0)}'`
-     AC_MSG_WARN([Guessing LevelDB OS as OS_${OTHER_OS}, please check whether this is correct, if not add an entry to configure.ac.])
-     LEVELDB_TARGET_FLAGS="-DOS_${OTHER_OS}"
+     AC_MSG_ERROR(Cannot build leveldb for $host. Please file a bug report.)
      ;;
 esac
 
@@ -639,6 +689,8 @@ if test x$use_glibc_compat != xno; then
     [ fdelt_type="long int"])
   AC_MSG_RESULT($fdelt_type)
   AC_DEFINE_UNQUOTED(FDELT_TYPE, $fdelt_type,[parameter and return value type for __fdelt_chk])
+  AX_CHECK_LINK_FLAG([[-Wl,--wrap=__divmoddi4]], [COMPAT_LDFLAGS="$COMPAT_LDFLAGS -Wl,--wrap=__divmoddi4"])
+  AX_CHECK_LINK_FLAG([[-Wl,--wrap=log2f]], [COMPAT_LDFLAGS="$COMPAT_LDFLAGS -Wl,--wrap=log2f"])
 else
   AC_SEARCH_LIBS([clock_gettime],[rt])
 fi
@@ -698,6 +750,10 @@ fi
 
 AC_CHECK_HEADERS([endian.h sys/endian.h byteswap.h stdio.h stdlib.h unistd.h strings.h sys/types.h sys/stat.h sys/select.h sys/prctl.h])
 
+AC_CHECK_DECLS([getifaddrs, freeifaddrs],,,
+    [#include <sys/types.h>
+    #include <ifaddrs.h>]
+)
 AC_CHECK_DECLS([strnlen])
 
 # Check for daemon(3), unrelated to --with-daemon (although used by it)
@@ -806,6 +862,14 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/types.h>
  [ AC_MSG_RESULT(no)]
 )
 
+AC_MSG_CHECKING(for if type char equals int8_t)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <stdint.h>
+  #include <type_traits>]],
+ [[ static_assert(std::is_same<int8_t, char>::value, ""); ]])],
+ [ AC_MSG_RESULT(yes); AC_DEFINE(CHAR_EQUALS_INT8, 1,[Define this symbol if type char equals int8_t]) ],
+ [ AC_MSG_RESULT(no)]
+)
+
 # Check for reduced exports
 if test x$use_reduce_exports = xyes; then
   AX_CHECK_COMPILE_FLAG([-fvisibility=hidden],[RE_CXXFLAGS="-fvisibility=hidden"],
@@ -837,9 +901,9 @@ fi
 BITCOIN_QT_INIT
 
 dnl sets $bitcoin_enable_qt, $bitcoin_enable_qt_test, $bitcoin_enable_qt_dbus
-BITCOIN_QT_CONFIGURE([$use_pkgconfig], [qt5])
+BITCOIN_QT_CONFIGURE([$use_pkgconfig])
 
-if test x$build_bitcoin_utils$build_bitcoind$bitcoin_enable_qt$use_tests$use_bench = xnonononono; then
+if test x$build_bitcoin_cli$build_bitcoin_tx$build_bitcoind$bitcoin_enable_qt$use_tests$use_bench = xnononononono; then
     use_boost=no
 else
     use_boost=yes
@@ -857,7 +921,6 @@ if test x$want_boost = xno; then
 fi
 AX_BOOST_SYSTEM
 AX_BOOST_FILESYSTEM
-AX_BOOST_PROGRAM_OPTIONS
 AX_BOOST_THREAD
 AX_BOOST_CHRONO
 
@@ -926,7 +989,7 @@ fi
 
 if test x$use_boost = xyes; then
 
-BOOST_LIBS="$BOOST_LDFLAGS $BOOST_SYSTEM_LIB $BOOST_FILESYSTEM_LIB $BOOST_PROGRAM_OPTIONS_LIB $BOOST_THREAD_LIB $BOOST_CHRONO_LIB"
+BOOST_LIBS="$BOOST_LDFLAGS $BOOST_SYSTEM_LIB $BOOST_FILESYSTEM_LIB $BOOST_THREAD_LIB $BOOST_CHRONO_LIB"
 
 
 dnl If boost (prior to 1.57) was built without c++11, it emulated scoped enums
@@ -1024,11 +1087,13 @@ if test x$use_pkgconfig = xyes; then
     [
       PKG_CHECK_MODULES([SSL], [libssl],, [AC_MSG_ERROR(openssl not found.)])
       PKG_CHECK_MODULES([CRYPTO], [libcrypto],,[AC_MSG_ERROR(libcrypto not found.)])
-      BITCOIN_QT_CHECK([PKG_CHECK_MODULES([PROTOBUF], [protobuf], [have_protobuf=yes], [BITCOIN_QT_FAIL(libprotobuf not found)])])
+      if test x$enable_bip70 != xno; then
+        BITCOIN_QT_CHECK([PKG_CHECK_MODULES([PROTOBUF], [protobuf], [have_protobuf=yes], [BITCOIN_QT_FAIL(libprotobuf not found)])])
+      fi
       if test x$use_qr != xno; then
         BITCOIN_QT_CHECK([PKG_CHECK_MODULES([QR], [libqrencode], [have_qrencode=yes], [have_qrencode=no])])
       fi
-      if test x$build_bitcoin_utils$build_bitcoind$bitcoin_enable_qt$use_tests != xnononono; then
+      if test x$build_bitcoin_cli$build_bitcoin_tx$build_bitcoind$bitcoin_enable_qt$use_tests != xnonononono; then
         PKG_CHECK_MODULES([EVENT], [libevent],, [AC_MSG_ERROR(libevent not found.)])
         if test x$TARGET_OS != xwindows; then
           PKG_CHECK_MODULES([EVENT_PTHREADS], [libevent_pthreads],, [AC_MSG_ERROR(libevent_pthreads not found.)])
@@ -1053,7 +1118,7 @@ else
   AC_CHECK_HEADER([openssl/ssl.h],, AC_MSG_ERROR(libssl headers missing),)
   AC_CHECK_LIB([ssl],         [main],SSL_LIBS=-lssl, AC_MSG_ERROR(libssl missing))
 
-  if test x$build_bitcoin_utils$build_bitcoind$bitcoin_enable_qt$use_tests != xnononono; then
+  if test x$build_bitcoin_cli$build_bitcoin_tx$build_bitcoind$bitcoin_enable_qt$use_tests != xnonononono; then
     AC_CHECK_HEADER([event2/event.h],, AC_MSG_ERROR(libevent headers missing),)
     AC_CHECK_LIB([event],[main],EVENT_LIBS=-levent,AC_MSG_ERROR(libevent missing))
     if test x$TARGET_OS != xwindows; then
@@ -1084,7 +1149,9 @@ else
     esac
   fi
 
-  BITCOIN_QT_CHECK(AC_CHECK_LIB([protobuf] ,[main],[PROTOBUF_LIBS=-lprotobuf], BITCOIN_QT_FAIL(libprotobuf not found)))
+  if test x$enable_bip70 != xno; then
+    BITCOIN_QT_CHECK(AC_CHECK_LIB([protobuf] ,[main],[PROTOBUF_LIBS=-lprotobuf], BITCOIN_QT_FAIL(libprotobuf not found)))
+  fi
   if test x$use_qr != xno; then
     BITCOIN_QT_CHECK([AC_CHECK_LIB([qrencode], [main],[QR_LIBS=-lqrencode], [have_qrencode=no])])
     BITCOIN_QT_CHECK([AC_CHECK_HEADER([qrencode.h],, have_qrencode=no)])
@@ -1098,11 +1165,27 @@ AC_CHECK_DECLS([EVP_MD_CTX_new],,,[AC_INCLUDES_DEFAULT
 ])
 CXXFLAGS="${save_CXXFLAGS}"
 
+dnl RapidCheck Property Based Testing
+
+enable_property_tests=no
+if test "x$use_rapidcheck" = xauto; then
+    AC_CHECK_HEADERS([rapidcheck.h], [enable_property_tests=yes])
+elif test "x$use_rapidcheck" != xno; then
+    enable_property_tests=yes
+fi
+
+RAPIDCHECK_LIBS=
+if test "x$enable_property_tests" = xyes; then
+   RAPIDCHECK_LIBS=-lrapidcheck
+fi
+AC_SUBST(RAPIDCHECK_LIBS)
+AM_CONDITIONAL([ENABLE_PROPERTY_TESTS], [test x$enable_property_tests = xyes])
+
 dnl univalue check
 
 need_bundled_univalue=yes
 
-if test x$build_bitcoin_utils$build_bitcoind$bitcoin_enable_qt$use_tests$use_bench = xnonononono; then
+if test x$build_bitcoin_cli$build_bitcoin_tx$build_bitcoind$bitcoin_enable_qt$use_tests$use_bench = xnononononono; then
   need_bundled_univalue=no
 else
 
@@ -1146,15 +1229,21 @@ AM_CONDITIONAL([EMBEDDED_UNIVALUE],[test x$need_bundled_univalue = xyes])
 AC_SUBST(UNIVALUE_CFLAGS)
 AC_SUBST(UNIVALUE_LIBS)
 
+if test x$enable_bip70 != xno; then
 BITCOIN_QT_PATH_PROGS([PROTOC], [protoc],$protoc_bin_path)
+fi
 
 AC_MSG_CHECKING([whether to build susucoind])
 AM_CONDITIONAL([BUILD_BITCOIND], [test x$build_bitcoind = xyes])
 AC_MSG_RESULT($build_bitcoind)
 
-AC_MSG_CHECKING([whether to build utils (susucoin-cli susucoin-tx)])
-AM_CONDITIONAL([BUILD_BITCOIN_UTILS], [test x$build_bitcoin_utils = xyes])
-AC_MSG_RESULT($build_bitcoin_utils)
+AC_MSG_CHECKING([whether to build susucoin-cli])
+AM_CONDITIONAL([BUILD_BITCOIN_CLI], [test x$build_bitcoin_cli = xyes])
+AC_MSG_RESULT($build_bitcoin_cli)
+
+AC_MSG_CHECKING([whether to build susucoin-tx])
+AM_CONDITIONAL([BUILD_BITCOIN_TX], [test x$build_bitcoin_tx = xyes])
+AC_MSG_RESULT($build_bitcoin_tx)
 
 AC_MSG_CHECKING([whether to build libraries])
 AM_CONDITIONAL([BUILD_BITCOIN_LIBS], [test x$build_bitcoin_libs = xyes])
@@ -1260,6 +1349,15 @@ if test x$bitcoin_enable_qt != xno; then
   else
     AC_MSG_RESULT([no])
   fi
+
+  AC_MSG_CHECKING([whether to build BIP70 support])
+  if test x$enable_bip70 != xno; then
+    AC_DEFINE([ENABLE_BIP70],[1],[Define if BIP70 support should be compiled in])
+    enable_bip70=yes
+    AC_MSG_RESULT([yes])
+  else
+    AC_MSG_RESULT([no])
+  fi
 fi
 
 AM_CONDITIONAL([ENABLE_ZMQ], [test "x$use_zmq" = "xyes"])
@@ -1280,7 +1378,7 @@ else
   AC_MSG_RESULT([no])
 fi
 
-if test x$build_bitcoin_utils$build_bitcoin_libs$build_bitcoind$bitcoin_enable_qt$use_bench$use_tests = xnononononono; then
+if test x$build_bitcoin_cli$build_bitcoin_tx$build_bitcoin_libs$build_bitcoind$bitcoin_enable_qt$use_bench$use_tests = xnonononononono; then
   AC_MSG_ERROR([No targets! Please specify at least one of: --with-utils --with-libs --with-daemon --with-gui --enable-bench or --enable-tests])
 fi
 
@@ -1291,6 +1389,7 @@ AM_CONDITIONAL([ENABLE_WALLET],[test x$enable_wallet = xyes])
 AM_CONDITIONAL([ENABLE_TESTS],[test x$BUILD_TEST = xyes])
 AM_CONDITIONAL([ENABLE_QT],[test x$bitcoin_enable_qt = xyes])
 AM_CONDITIONAL([ENABLE_QT_TESTS],[test x$BUILD_TEST_QT = xyes])
+AM_CONDITIONAL([ENABLE_BIP70],[test x$enable_bip70 = xyes])
 AM_CONDITIONAL([ENABLE_BENCH],[test x$use_bench = xyes])
 AM_CONDITIONAL([USE_QRCODE], [test x$use_qr = xyes])
 AM_CONDITIONAL([USE_LCOV],[test x$use_lcov = xyes])
@@ -1299,6 +1398,7 @@ AM_CONDITIONAL([HARDEN],[test x$use_hardening = xyes])
 AM_CONDITIONAL([ENABLE_HWCRC32],[test x$enable_hwcrc32 = xyes])
 AM_CONDITIONAL([ENABLE_SSE41],[test x$enable_sse41 = xyes])
 AM_CONDITIONAL([ENABLE_AVX2],[test x$enable_avx2 = xyes])
+AM_CONDITIONAL([ENABLE_SHANI],[test x$enable_shani = xyes])
 AM_CONDITIONAL([USE_ASM],[test x$use_asm = xyes])
 
 AC_DEFINE(CLIENT_VERSION_MAJOR, _CLIENT_VERSION_MAJOR, [Major version])
@@ -1330,6 +1430,7 @@ AC_SUBST(DEBUG_CPPFLAGS)
 AC_SUBST(WARN_CXXFLAGS)
 AC_SUBST(NOWARN_CXXFLAGS)
 AC_SUBST(DEBUG_CXXFLAGS)
+AC_SUBST(COMPAT_LDFLAGS)
 AC_SUBST(ERROR_CXXFLAGS)
 AC_SUBST(GPROF_CXXFLAGS)
 AC_SUBST(GPROF_LDFLAGS)
@@ -1343,6 +1444,7 @@ AC_SUBST(SANITIZER_LDFLAGS)
 AC_SUBST(SSE42_CXXFLAGS)
 AC_SUBST(SSE41_CXXFLAGS)
 AC_SUBST(AVX2_CXXFLAGS)
+AC_SUBST(SHANI_CXXFLAGS)
 AC_SUBST(LIBTOOL_APP_LDFLAGS)
 AC_SUBST(USE_UPNP)
 AC_SUBST(USE_QRCODE)
@@ -1422,7 +1524,7 @@ echo "Options used to compile and link:"
 echo "  with wallet   = $enable_wallet"
 echo "  with gui / qt = $bitcoin_enable_qt"
 if test x$bitcoin_enable_qt != xno; then
-    echo "    qt version  = $bitcoin_qt_got_major_vers"
+    echo "    with bip70  = $enable_bip70"
     echo "    with qr     = $use_qr"
 fi
 echo "  with zmq      = $use_zmq"

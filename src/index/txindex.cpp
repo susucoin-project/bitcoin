@@ -3,9 +3,9 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <index/txindex.h>
-#include <init.h>
+#include <shutdown.h>
 #include <ui_interface.h>
-#include <util.h>
+#include <util/system.h>
 #include <validation.h>
 
 #include <boost/thread.hpp>
@@ -250,7 +250,7 @@ bool TxIndex::WriteBlock(const CBlock& block, const CBlockIndex* pindex)
     vPos.reserve(block.vtx.size());
     for (const auto& tx : block.vtx) {
         vPos.emplace_back(tx->GetHash(), pos);
-        pos.nTxOffset += ::GetSerializeSize(*tx, SER_DISK, CLIENT_VERSION);
+        pos.nTxOffset += ::GetSerializeSize(*tx, CLIENT_VERSION);
     }
     return m_db->WriteTxs(vPos);
 }
